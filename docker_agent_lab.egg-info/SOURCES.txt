@@ -1,0 +1,6 @@
+pyproject.toml
+docker_agent_lab.egg-info/PKG-INFO
+docker_agent_lab.egg-info/SOURCES.txt
+docker_agent_lab.egg-info/dependency_links.txt
+docker_agent_lab.egg-info/requires.txt
+docker_agent_lab.egg-info/top_level.txt

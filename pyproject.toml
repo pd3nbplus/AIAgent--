@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "docker-agent-lab"
+version = "0.1.0"
+description = "基于 Docker + Qwen 的 AI Agent 学习项目"
+requires-python = ">=3.12"
+dependencies = [
+    "requests",
+    "python-dotenv",
+    "ipython",
+    "langchain>=0.3.0",
+    "langchain-community>=0.3.0",
+    "langgraph>=0.2.0",
+    "langchain-openai>=0.2.0", # 即使是用本地 Qwen，也常用这个包做兼容适配
+    "langgraph-checkpoint-redis",
+    "pymysql",
+    "sqlalchemy",
+    "pymilvus",
+    "sentence-transformers",
+    "PyMuPDF",
+    "FlagEmbedding",
+    "elasticsearch==8.11.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "black>=24.0.0",
+]
+
+[tool.setuptools]
+# 禁用自动发现，防止误把 img, LangGraph 等文件夹当作包
+packages = []

@@ -1,0 +1,42 @@
+flowchart TD
+    subgraph Online ["🗣️ 检索后：动态推理流程 (Online)"]
+        User((用户)) --> Query[用户提问]
+        Query --> Agent[LangGraph Agent]
+        
+        subgraph RAG_Engine ["🧩 Modular RAG 引擎"]
+            Rewrite[✍️ Query Rewriter<br/>语义对齐] --> Search[Milvus ANN Search<br/>HNSW 粗排 Top-K]
+            
+            
+            Decision{分数差距 < 阈值？}
+            Decision -- 是 (难抉择) --> RerankFactory[🏭 RerankerFactory]
+            RerankFactory -->|加载模型 | CrossEnc[⚖️ CrossEncoder 精排]
+            Decision -- 否 (优势大) --> Skip[✅ 跳过重排]
+            
+            CrossEnc --> Final[最终上下文 Top-3]
+            Skip --> Final
+            Search --> Decision
+        end
+        
+        subgraph Memory_System ["💾 记忆系统"]
+            Redis[(Redis: 短期会话)]
+            MySQL[(MySQL: 长期画像)]
+            MemTools[Memory Tools]
+        end
+        
+        Agent -- 调用 --> RAG_Engine
+        Agent -- 调用 --> Memory_System
+        
+        Final --> LLM[LLM 生成答案]
+        MemTools --> LLM
+        Redis -.-> Agent
+        MySQL -.-> MemTools
+    end
+
+    LLM --> Response[最终回复<br/>带引用来源]
+    Response --> User
+    
+    style Online fill:#fff3e0,stroke:#e65100
+    style RAG_Engine fill:#f3e5f5,stroke:#4a148c
+    style Factory fill:#fff9c4,stroke:#fbc02d,stroke-dasharray: 5 5
+    style RerankFactory fill:#fff9c4,stroke:#fbc02d,stroke-dasharray: 5 5
+    style Memory_System fill:#e8f5e9,stroke:#1b5e20

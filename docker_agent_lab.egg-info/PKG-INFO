@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: docker-agent-lab
+Version: 0.1.0
+Summary: 基于 Docker + Qwen 的 AI Agent 学习项目
+Requires-Python: >=3.12
+Requires-Dist: requests
+Requires-Dist: python-dotenv
+Requires-Dist: ipython
+Requires-Dist: langchain>=0.3.0
+Requires-Dist: langchain-community>=0.3.0
+Requires-Dist: langgraph>=0.2.0
+Requires-Dist: langchain-openai>=0.2.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: black>=24.0.0; extra == "dev"

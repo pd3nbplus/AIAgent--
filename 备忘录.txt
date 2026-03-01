@@ -1,0 +1,2 @@
+当前环境是基于WSL2 + Ubuntu 24.04 + Docker Desktop构建的云原生开发平台，所有服务（MySQL、Redis、Qwen）均以独立容器形式运行并通过Docker Compose统一编排。
+该架构既支持AI Agent开发（LLM+记忆系统+工具链），又可灵活切换为纯后端服务环境，实现“环境即代码”的可移植、可复现与资源隔离。
