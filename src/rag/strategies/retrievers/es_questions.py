@@ -36,7 +36,7 @@ class ESQuestionsRetriever(BaseRetrievalStrategy):
             final_text = original_text
             source_tag = os.path.splitext(os.path.basename(__file__))[0]
             # 👇 核心逻辑：查子返父
-            if self.use_parent_context and meta.get("parent_text"):
+            if meta.get("parent_text"):
                 final_text = meta["parent_text"]
                 source_tag = source_tag + "_parent"
                 # 可选：在 metadata 中记录原始子块文本，方便调试

@@ -2,7 +2,6 @@
 from src.rag.strategies.base import BaseRetrievalStrategy, SearchResult
 from src.core.milvus_client import get_milvus_client
 from src.rag.rewriter import rewriter_instance # 复用之前的重写器
-from src.core.config import settings
 from typing import List, Optional
 import logging
 import os
@@ -17,9 +16,8 @@ class VectorRewrittenRetriever(BaseRetrievalStrategy):
     def __init__(self):
         self.milvus = get_milvus_client()
         self.rewriter = rewriter_instance
-        # 从配置读取是否启用父子上下文
-        self.use_parent_context = settings.rag_offline.chunk_strategy == "parent_child"
-        logger.info(f"🔌 [Plugin] 加载变体向量检索插件 (Rewritten) 检索模式: ({'查子反父' if self.use_parent_context else 'normal'})")
+
+        logger.info(f"🔌 [Plugin] 加载变体向量检索插件 (Rewritten)")
 
     def search(self, query: str, top_k: int, filter_expr: Optional[str] = None, **kwargs) -> List[SearchResult]:
         # 1. 生成变体查询
@@ -48,7 +46,7 @@ class VectorRewrittenRetriever(BaseRetrievalStrategy):
             final_text = original_text
             source_tag = os.path.splitext(os.path.basename(__file__))[0]
             # 👇 核心逻辑：查子返父
-            if self.use_parent_context and meta.get("parent_text"):
+            if meta.get("parent_text"):
                 final_text = meta["parent_text"]
                 source_tag = source_tag + "_parent"
                 # 可选：在 metadata 中记录原始子块文本，方便调试

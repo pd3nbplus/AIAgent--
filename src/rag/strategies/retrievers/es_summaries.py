@@ -14,10 +14,8 @@ class ESSummariesRetriever(BaseRetrievalStrategy):
     def __init__(self):
         self.es = es_client_instance
         self.index_name = settings.db.es_index_summaries
-        # 从配置读取是否启用父子上下文
-        self.use_parent_context = settings.rag_offline.chunk_strategy == "parent_child"
         if self.es.is_available():
-            logger.info(f"🔌 [Plugin] ES 检索插件{self.index_name}已就绪 检索模式: ({'查子反父' if self.use_parent_context else 'normal'})")
+            logger.info(f"🔌 [Plugin] ES 检索插件{self.index_name}已就绪")
         else:
             logger.warning("🔌 [Plugin] ES 不可用，此插件将自动跳过")
 
@@ -39,7 +37,7 @@ class ESSummariesRetriever(BaseRetrievalStrategy):
             # source_tag = "es_summaries"
             source_tag = os.path.splitext(os.path.basename(__file__))[0]
             # 👇 核心逻辑：查子返父
-            if self.use_parent_context and meta.get("parent_text"):
+            if meta.get("parent_text"):
                 final_text = meta["parent_text"]
                 source_tag = source_tag + "_parent"
                 # 可选：在 metadata 中记录原始子块文本，方便调试

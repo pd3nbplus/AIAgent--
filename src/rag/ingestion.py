@@ -151,7 +151,6 @@ class DataIngestionPipeline:
                     self.es.indexing_question(
                         doc_id=doc_id,
                         questions=questions_str,
-                        summary=summary_str,
                         text=text,
                         metadata=final_metadata
                     )

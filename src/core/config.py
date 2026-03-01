@@ -53,7 +53,7 @@ class DatabaseSettings(BaseSettings):
     # --- Elasticsearch (新增) ---
     es_host: str = "http://localhost:9200"       # 本地访问地址
     es_index_questions: str = "knowledge_questions" # 存储假设性问题的索引
-    es_index_summaries: str = "es_index_summaries"  # 存储总结的索引
+    es_index_summaries: str = "knowledge_summaries"  # 存储总结的索引
     es_user: Optional[str] = None                 # 如果开启安全认证
     es_password: Optional[str] = None
     

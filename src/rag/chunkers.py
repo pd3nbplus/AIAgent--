@@ -73,9 +73,9 @@ class ParentChildChunker(BaseChunker):
         
         self.child_splitter = RecursiveCharacterTextSplitter(
             chunk_size=child_size,
-            chunk_overlap=overlap,
+            chunk_overlap=child_overlap,
             length_function=len,
-            separators=child_overlap
+            separators=separators
         )
 
     def split_documents(self, docs: List[Document]) -> List[Document]:
