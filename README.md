@@ -114,52 +114,56 @@ python src/main.py
 
 ```text
 src/
-├── main.py                      # 🚀 应用入口 (启动 Agent 或 CLI)
+├── main.py                          # 🚀 应用入口
 │
-├── core/                        # 🧱 基础设施层 (Infrastructure)
-│   ├── config.py                # ⚙️ 配置中心 (Pydantic 模块化配置)
-│   ├── redis_client.py          # 💾 短期记忆 (LangGraph Checkpointer)
-│   ├── db_session.py            # 🗄️ MySQL 连接池 (ORM 基础)
-│   ├── models.py                # 📑 MySQL 数据模型 (User Profiles)
-│   ├── milvus_client.py         # 🔭 向量数据库客户端 (含 scan_collection 同步支持)
-│   └── es_client.py             # 🔎 ES 客户端 (含 IK 分词、双索引、sync_from_milvus)
+├── core/                            # 🧱 基础设施层
+│   ├── config.py                    # ⚙️ 配置中心（含 Parent-Child / HyDE 开关）
+│   ├── redis_client.py              # 💾 短期记忆（LangGraph Checkpointer）
+│   ├── db_session.py                # 🗄️ MySQL 连接池
+│   ├── models.py                    # 📑 MySQL 模型
+│   ├── milvus_client.py             # 🔭 Milvus 客户端
+│   └── es_client.py                 # 🔎 Elasticsearch 客户端
 │
-├── rag/                         # 🧠 RAG 引擎层 (Modular RAG Core) ⭐ 核心进化区
-│   ├── ingestion.py             # 📥 数据摄入管道 (双写 Milvus + ES)
-│   ├── pipeline.py              # 🔄 异步检索执行流 (Async/Await)
-│   ├── rewriter.py              # ✍️ 查询重写器
-│   ├── reranker.py              # ⚖️ 重排序模块 (CPU 优化 + 动态开关)
-│   ├── chunkers.py              # ✂️ 分块策略集
-│   ├── factories.py             # 🏭 工厂模块
-│   │
-│   ├── strategies/              # 🧩 策略模式核心目录
-│   │   ├── base.py              # 基础接口 (SearchResult, BaseRetriever)
-│   │   ├── composer.py          # 🎼 检索器组装器 (Asyncio Gather + RRF)
-│   │   ├── metadata_filter.py   # 🔒 元数据过滤构建器
-│   │   └── retrievers/          # 🔌 检索插件库 (可插拔)
-│   │       ├── vector_text.py   # 插件 1: 主路向量检索 (Text)
-│   │       ├── vector_rewritten.py # 插件 2: 变体向量检索 (Rewritten)
-│   │       ├── es_questions.py  # 插件 3: ES 问题检索 (Questions)
-│   │       └── es_summaries.py  # 插件 4: ES 摘要检索 (Summaries)
-│   │
-│   └── fusion/                  # 🔗 融合算法库
-│       └── rrf.py               # 倒数排名融合 (RRF)
+├── rag/                             # 🧠 RAG 引擎层（第六阶段核心演进区）
+│   ├── chunkers.py                  # ✂️ 分块体系（ParentChildChunker + ChildSplitterFactory）
+│   ├── factories.py                 # 🏭 工厂模块（配置驱动注入 Child Splitter）
+│   ├── ingestion.py                 # 📥 数据摄入（保留 parent_id/parent_text 元数据）
+│   ├── pipeline.py                  # 🔄 检索执行流
+│   ├── rewriter.py                  # ✍️ 查询重写器（standard / hyde 策略化）
+│   ├── reranker.py                  # ⚖️ 重排序模块
+│   ├── fusion/
+│   │   └── rrf.py                   # 🔗 RRF 融合
+│   └── strategies/
+│       ├── base.py                  # 基础接口（SearchResult / BaseRetrievalStrategy）
+│       ├── composer.py              # 🎼 检索器组装（异步并发 + RRF）
+│       ├── metadata_filter.py       # 🔒 过滤表达式构建
+│       └── retrievers/
+│           ├── vector_text.py       # 插件 1：主路向量检索
+│           ├── vector_rewritten.py  # 插件 2：改写向量检索（支持 HyDE）
+│           ├── es_questions.py      # 插件 3：ES Questions
+│           └── es_summaries.py      # 插件 4：ES Summaries
 │
-├── Mini_Agent/                  # 🤖 Agent 编排层 (LangGraph Logic)
-│   ├── state.py                 # 📦 状态定义
-│   ├── graph.py                 # 🕸️ 工作流图
-│   └── tools/                   # 🛠️ 工具集
-│       ├── base_tools.py        # ⏰ 基础工具
-│       ├── memory_tools.py      # 📒 长期记忆工具
-│       └── rag_tools.py         # 📚 知识库工具 (调用 Async Pipeline)
+├── Mini_Agent/                      # 🤖 Agent 编排层
+│   ├── agent_framework.py           # Agent 框架封装
+│   ├── agent_v1.py                  # Agent 版本实现
+│   ├── graph.py                     # LangGraph 工作流
+│   ├── state.py                     # 状态定义
+│   └── tools/
+│       ├── base_tools.py            # 基础工具
+│       ├── memory_tools.py          # 长期记忆工具
+│       └── rag_tools.py             # RAG 工具（调用 pipeline）
 │
-├── utils/                       # 🔧 通用工具类
-│   └── xml_parser.py            # 📝 XML 格式解析
+├── service/                         # 🧩 业务服务层（预留）
 │
-└── test/                        # 🧪 测试验证集
-    ├── sync_es.py               # 🔄 存量数据同步脚本 (Milvus -> ES)
-    ├── recall_test.py           # 📊 召回率测试
-    ├── test_dynamic_rerank.py   # ⚡ 动态重排测试
+├── utils/
+│   └── xml_parser.py                # 🧰 输出清洗 / XML 解析辅助
+│
+└── test/                            # 🧪 测试与评估
+    ├── test_ingestion.py            # 入库测试
+    ├── recall_test.py               # 多路召回评估
+    ├── recall_chunk_strategy.py     # 分块策略对比评估（第六阶段重点）
+    ├── test_dynamic_rerank.py       # 动态重排测试
+    ├── sync_es.py                   # Milvus -> ES 同步脚本
     └── ...
 ```
 
