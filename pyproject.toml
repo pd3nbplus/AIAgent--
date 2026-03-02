@@ -23,6 +23,7 @@ dependencies = [
     "PyMuPDF",
     "FlagEmbedding",
     "elasticsearch==8.11.0",
+    "jieba",
 ]
 
 [project.optional-dependencies]

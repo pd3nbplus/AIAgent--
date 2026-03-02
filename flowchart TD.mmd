@@ -1,42 +1,118 @@
 flowchart TD
-    subgraph Online ["🗣️ 检索后：动态推理流程 (Online)"]
-        User((用户)) --> Query[用户提问]
-        Query --> Agent[LangGraph Agent]
+    subgraph Offline ["📥 检索前：双写入库与同步 (Offline)"]
+        Doc[原始文档] --> Loader[DocumentLoader]
+        Loader --> Chunker[分块策略]
+        Chunker --> Enhancer[LLM 元数据增强<br/>Summary + Questions]
         
-        subgraph RAG_Engine ["🧩 Modular RAG 引擎"]
-            Rewrite[✍️ Query Rewriter<br/>语义对齐] --> Search[Milvus ANN Search<br/>HNSW 粗排 Top-K]
+        EnhanceData{{增强数据}}
+        EnhanceData -->|写入向量 | Milvus[(Milvus 向量库<br/>Text Embedding)]
+        EnhanceData -->|双写关键词 | ES[(Elasticsearch<br/>IK 分词索引)]
+        
+        LegacyData[Milvus 存量数据] -.->|sync_es.py| ES
+    end
+
+    subgraph Online ["🗣️ 检索后：异步混合检索 (Online)"]
+        User((用户)) --> Query[用户提问]
+        Agent[LangGraph Agent] -->|调用 | Pipeline
+        
+        subgraph Async_Pipeline ["⚡ 异步检索管道 (Asyncio)"]
+            Rewrite[✍️ Query Rewriter]
             
+            subgraph Parallel_Retrieval ["🔌 并行检索插件 (Gather)"]
+                direction TB
+                P1[🔹 Vector Text<br/>Milvus 主路]
+                P2[🔹 Vector Rewritten<br/>Milvus 变体路]
+                P3[🔹 ES Questions<br/>IK 问题匹配]
+                P4[🔹 ES Summaries<br/>IK 摘要匹配]
+            end
             
-            Decision{分数差距 < 阈值？}
-            Decision -- 是 (难抉择) --> RerankFactory[🏭 RerankerFactory]
-            RerankFactory -->|加载模型 | CrossEnc[⚖️ CrossEncoder 精排]
-            Decision -- 否 (优势大) --> Skip[✅ 跳过重排]
+            Filter[🔒 元数据过滤<br/>Category/Source]
+            RRF[🔗 RRF 融合引擎]
+        end
+        
+        Agent -- 调用 --> Async_Pipeline
+        Filter --> Parallel_Retrievalflowchart LR
+    subgraph Online ["🤖 智能体架构流程"]
+        User((用户)) --> Query[用户提问]
+        Query --> Agent
+        Agent[AI Agent] -->|调用 | Pipeline
+        Pipeline --> Filter
+        Pipeline --> Rewrite
+
+        subgraph Async_Pipeline ["🗣️ 检索后：异步混合检索 (Online)"]
+            Rewrite[✍️ Query Rewriter]
             
-            CrossEnc --> Final[最终上下文 Top-3]
-            Skip --> Final
-            Search --> Decision
+            subgraph Parallel_Retrieval ["⚡ 并行检索插件 (Gather)"]
+                direction TB
+                P1[🔹 Vector Text<br/>Milvus 主路]
+                P2[🔹 Vector Rewritten<br/>Milvus 变体路]
+                P22[🔹 hyde Rewritten<br/>Milvus 变体路]
+                P3[🔹 ES Questions<br/>IK 问题匹配]
+                P4[🔹 ES Summaries<br/>IK 摘要匹配]
+            end
+            
+            Filter[🔒 元数据过滤<br/>Category/Source]
+            RRF[🔗 RRF 融合引擎]
         end
         
         subgraph Memory_System ["💾 记忆系统"]
-            Redis[(Redis: 短期会话)]
-            MySQL[(MySQL: 长期画像)]
-            MemTools[Memory Tools]
+            Redis[(Redis: 会话状态)]
+            MySQL[(MySQL: 用户画像)]
         end
         
-        Agent -- 调用 --> RAG_Engine
-        Agent -- 调用 --> Memory_System
+        Filter --> Parallel_Retrieval
+        Rewrite --> P2
+        Rewrite --> P22
         
-        Final --> LLM[LLM 生成答案]
-        MemTools --> LLM
-        Redis -.-> Agent
-        MySQL -.-> MemTools
+        Parallel_Retrieval --> RRF
+        RRF --> Decision{分数差距 < 阈值？}
+        
+        Decision -- 是 --> Rerank[⚖️ CrossEncoder 精排<br/>CPU 线程限制]
+        Decision -- 否 --> Skip[✅ 跳过重排]
+        
+        Rerank --> Final[最终上下文 Top-3]
+        Skip --> Final
+        Final --> Agent
+        Agent -- 调用 -->  Memory_System
+        Agent -- 回复 --> User
     end
-
-    LLM --> Response[最终回复<br/>带引用来源]
-    Response --> User
     
     style Online fill:#fff3e0,stroke:#e65100
-    style RAG_Engine fill:#f3e5f5,stroke:#4a148c
-    style Factory fill:#fff9c4,stroke:#fbc02d,stroke-dasharray: 5 5
-    style RerankFactory fill:#fff9c4,stroke:#fbc02d,stroke-dasharray: 5 5
+    style Async_Pipeline fill:#f3e5f5,stroke:#4a148c
+    style Parallel_Retrieval fill:#fff9c4,stroke:#fbc02d,stroke-dasharray: 5 5
     style Memory_System fill:#e8f5e9,stroke:#1b5e20
+
+
+graph TD
+    subgraph Offline ["📥 检索前：双写入库与同步 (Offline)"]
+        Doc[原始文档] --> Loader[DocumentLoader]
+        Loader --> ChunkStrategies[分块策略]
+        ChunkStrategies --> Enhancer[LLM 元数据增强<br/>Summary + Questions]
+        
+        Enhancer -->|写入向量 | Milvus[(Milvus 向量库<br/>Text Embedding)]
+        Enhancer -->|双写关键词 | ES[(Elasticsearch<br/>IK 分词索引)]
+        
+        LegacyData[Milvus 存量数据] -.->|sync_es.py| ES
+        
+        %% 分块策略详细展开
+        subgraph ChunkStrategies ["📌 分块策略"]
+            direction LR
+            Recursive[递归分块<br/> RecursiveChunker]
+            Fixed[固定大小<br/>FixedChunker]
+            ParentChild[父子分块<br/>ParentChildChunker]
+            
+            subgraph ChildSplitters ["子分块器 Child Splitters"]
+                RecursiveChild[递归分块<br/>Recursive]
+                SentenceChild[句子分块<br/>jieba]
+            end
+            
+            ParentChild --> ChildSplitters
+        end
+        
+    end
+    
+    style Offline fill:#e1f5fe,stroke:#01579b
+    style ES fill:#ffccbc,stroke:#bf360c
+    style Milvus fill:#bbdefb,stroke:#0d47a1
+    style ChunkStrategies fill:#e8f5e8,stroke:#2e7d32
+    style ChildSplitters fill:#f3e5f5,stroke:#6a1b9a

@@ -1,7 +1,7 @@
 # src/rag/strategies/retrievers/vector_rewritten.py
 from src.rag.strategies.base import BaseRetrievalStrategy, SearchResult
 from src.core.milvus_client import get_milvus_client
-from src.rag.rewriter import rewriter_instance # 复用之前的重写器
+from src.rag.rewriter import get_rewriter # 复用之前的重写器
 from typing import List, Optional
 import logging
 import os
@@ -13,11 +13,11 @@ class VectorRewrittenRetriever(BaseRetrievalStrategy):
     插件 2: 变体向量检索
     策略：先让 LLM 重写查询 (Query Rewriting)，再用重写后的句子进行向量搜索。
     """
-    def __init__(self):
+    def __init__(self, strategy_name: str = "standard"):
         self.milvus = get_milvus_client()
-        self.rewriter = rewriter_instance
+        self.rewriter = get_rewriter(strategy_name=strategy_name)
 
-        logger.info(f"🔌 [Plugin] 加载变体向量检索插件 (Rewritten)")
+        logger.info(f"🔌 [Plugin] 加载变体向量检索插件 ({strategy_name})")
 
     def search(self, query: str, top_k: int, filter_expr: Optional[str] = None, **kwargs) -> List[SearchResult]:
         # 1. 生成变体查询

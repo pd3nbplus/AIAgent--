@@ -37,7 +37,7 @@
 
 ### 数据流向图
 
-![](img/03AIagent架构图.png)
+![](img/04AIagent架构图.png)
 
 ### 技术栈
 *   **编排框架**: LangGraph, LangChain
@@ -48,6 +48,8 @@
 *   **重排模型**: BGE-Reranker-Base
 *   **运行时**: Python 3.10+, Asyncio
 *   **容器化**: Docker, Docker Compose
+
+![](img/04离线数据管道.png)
 
 ---
 

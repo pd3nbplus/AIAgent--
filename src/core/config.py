@@ -22,6 +22,7 @@ class LLMSettings(BaseSettings):
     temperature: float = Field(0.05, ge=0.0, le=1.0, description="生成温度")
     # 稍微增加创造性以扩展同义词
     rewrite_temperature: float = Field(0.3, ge=0.0, le=1.0, description="重写温度")
+    hyde_temperature: float = Field(0.7, ge=0.0, le=1.0, description="HyDE 温度")
     
     model_config = SettingsConfigDict(env_prefix="LLM_")
 
@@ -79,9 +80,11 @@ class RagOfflineSettings(BaseSettings):
     chunk_separators: str = "\n\n,\n,。,!,?， ,"
     
     # 父子分块特有参数
-    # 子块大小和重叠
-    child_chunk_size: int = 50
-    child_chunk_overlap: int = 10
+    # 子分块器配置
+    child_chunk_size: int = 80
+    child_chunk_overlap: int = 0
+    child_splitter_strategy: str = "recursive"  # 可选：recursive, sentence
+    min_sentence_length: int = 10
     @property
     def separators_list(self) -> List[str]:
         return self.chunk_separators.split(',') if self.chunk_separators else ["\n\n"]
@@ -113,6 +116,7 @@ class SearchStrategySettings(BaseSettings):
     plugin_rewritten_query: bool = True       # 对应 VectorRewrittenRetriever 重写
     plugin_es_questions: bool = False         # 对应 ESQuestionsRetriever ES 检索
     plugin_es_summaries: bool = False         # 对应 ESSummariesRetriever ES 摘要检索
+    plugin_rewritten_hyde: bool = False       # 对应 VectorRewrittenRetriever HyDE 重写
 
     # 融合算法参数
     rrf_k: int = 60

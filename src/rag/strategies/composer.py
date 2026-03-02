@@ -33,9 +33,13 @@ class RetrieverComposer:
         if settings.search.enable_hybrid_search:
             # 2. 改写路：如果开启改写
             if settings.search.plugin_rewritten_query:
-                self.retrievers.append(VectorRewrittenRetriever())
-                logger.info("✅ [Composer] 已加载变体路：VectorRewritten")
+                self.retrievers.append(VectorRewrittenRetriever('standard'))
+                logger.info("✅ [Composer] 已加载变体路：VectorRewritten-standard")
             
+            if settings.search.plugin_rewritten_hyde:
+                self.retrievers.append(VectorRewrittenRetriever('hyde'))
+                logger.info("✅ [Composer] 已加载变体路：VectorRewritten-hyde")
+
             # 3. ES 路：如果配置了 ES
             if settings.db.es_host:
                 # 3. ES - Questions 路

@@ -1,11 +1,9 @@
 # src/rag/pipeline.py
-from src.rag.rewriter import rewriter_instance
 from src.rag.factories import RerankerFactory # 👈 新增导入
 from src.rag.strategies.metadata_filter import MetadataFilterBuilder
 from src.rag.strategies.composer import composer_instance # 导入多路召回组件
 from src.rag.strategies.base import SearchResult # 👈 导入 SearchResult 类
 from src.core.config import settings
-from src.utils.xml_parser import remove_think_and_n
 import logging
 from typing import List, Dict, Optional
 

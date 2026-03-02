@@ -160,7 +160,7 @@ async def main():
     
     if hybrid:
         logger.warning("⚠️ 检测到混合检索已开启。为了纯粹对比分块策略，建议在 .env 中设置 SEARCH_ENABLE_HYBRID_SEARCH=False")
-        exit(1)
+        # exit(1)
 
     all_results = []
     category_stats = {}
