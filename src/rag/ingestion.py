@@ -31,7 +31,7 @@ class DataIngestionPipeline:
         # 配置分块策略 (Advanced RAG 核心参数)
         # 可根据文档类型调整，这里使用通用配置
         self.text_splitter = ChunkerFactory.get_chunker()
-        logger.info("✅ 数据摄入管道初始化完成 (递归分块模式)")
+        logger.info("✅ 数据摄入管道初始化完成")
 
     def load_document(self, file_path: str) -> List:
         """加载文档并解析为 LangChain Document 对象"""

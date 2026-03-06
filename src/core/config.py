@@ -34,6 +34,9 @@ class DatabaseSettings(BaseSettings):
     
     # MySQL
     database_url: str = "mysql+pymysql://root:mysql2002@localhost:3307/agent_memory"
+
+    # PostgreSQL (评估数据等场景使用，一行 URL 配置即可) 
+    postgres_database_url: str = "postgresql+psycopg2://agent_user:postgresql_2002@127.0.0.1:5433/agent_dev"
     pool_pre_ping: bool = True
     pool_size: int = 10
     max_overflow: int = 20

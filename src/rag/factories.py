@@ -16,11 +16,12 @@ class ChunkerFactory:
     @staticmethod
     def get_chunker() -> BaseChunker:
         strategy = settings.rag_offline.chunk_strategy.lower()
-        
+        logger.info(f"└─ 分块策略：{strategy}")
         # 解析分隔符字符串为列表
         separators = settings.rag_offline.chunk_separators.split(',') if settings.rag_offline.chunk_separators else ["\n\n"]
         
         if strategy == "recursive":
+            
             return RecursiveChunker(
                 chunk_size=settings.rag_offline.chunk_size,
                 chunk_overlap=settings.rag_offline.chunk_overlap,

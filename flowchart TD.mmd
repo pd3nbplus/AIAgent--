@@ -116,3 +116,49 @@ graph TD
     style Milvus fill:#bbdefb,stroke:#0d47a1
     style ChunkStrategies fill:#e8f5e8,stroke:#2e7d32
     style ChildSplitters fill:#f3e5f5,stroke:#6a1b9a
+
+
+flowchart TD
+    A["配置层"] --> B["编排层"]
+    B --> C["数据源层
+            向量库抽取"]
+
+    subgraph D["策略层"]
+        D1["标准策略"]
+        D2["对抗策略"]
+        D3["随机拼接策略"]
+    end
+
+    subgraph E["模型访问层（按顺序降级调用）"]
+        E1["模型 1"]
+        E2["模型 2"]
+        E3["模型 3"]
+    end
+
+    B --> D
+    B --> F["校验与标准化层
+            JSON解析 + 结构校验 + 元数据补全"]
+    F --> G["持久化层
+            数据库写入"]
+
+    C --> H["长度过滤"]
+    H --> D1
+    H --> D2
+    H --> D3
+
+    D1 --> E1
+    D2 --> E1
+    D3 --> E1
+
+    E1 --> F
+    E1 -.失败降级.-> E2
+    E2 --> F
+    E2 -.失败降级.-> E3
+    E3 --> F
+
+    linkStyle 9 stroke:#ff0000,stroke-width:2px;
+    linkStyle 10 stroke:#ff0000,stroke-width:2px;
+    linkStyle 11 stroke:#ff0000,stroke-width:2px;
+    linkStyle 12 stroke:#ff0000,stroke-width:2px;
+    linkStyle 14 stroke:#ff0000,stroke-width:2px;
+    linkStyle 16 stroke:#ff0000,stroke-width:2px;

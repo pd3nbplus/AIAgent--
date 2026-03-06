@@ -164,3 +164,6 @@ def get_milvus_client() -> MilvusClient:
     if milvus_client_instance is None:
         milvus_client_instance = MilvusClient()
     return milvus_client_instance
+
+if __name__ == "__main__":
+    client = get_milvus_client()

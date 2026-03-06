@@ -1,0 +1,17 @@
+{
+  "_comment": "LLM 按数组顺序依次调用；前一个失败才会尝试下一个。",
+  "llms": [
+    {
+      "url": "https://api-inference.modelscope.cn/v1/",
+      "model": "MiniMax/MiniMax-M2.5",
+      "api_key": "ms-02d60235-2ddc-4431-b158-b8ea872682ec",
+      "temperature": 0.7
+    },
+    {
+      "url": "https://open.bigmodel.cn/api/paas/v4",
+      "model": "GLM-4.6V-Flash",
+      "api_key": "3c703b425855408fb537cd9a1ac3dc15.G4GBa8NQgUCYBI3Z",
+      "temperature": 0.7
+    }
+  ]
+}

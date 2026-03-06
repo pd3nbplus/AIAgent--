@@ -24,6 +24,7 @@ dependencies = [
     "FlagEmbedding",
     "elasticsearch==8.11.0",
     "jieba",
+    "psycopg2",
 ]
 
 [project.optional-dependencies]
