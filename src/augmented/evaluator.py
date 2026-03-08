@@ -64,7 +64,6 @@ class RAGEvaluator:
 {contexts}
 """
         )
-        self._ensure_eval_tables()
 
     @staticmethod
     def _run_async(coro):
@@ -103,10 +102,6 @@ class RAGEvaluator:
             client=client,
         )
 
-    def _ensure_eval_tables(self) -> None:
-        """启动时检查评估结果表结构，避免运行中才暴露建表问题。"""
-        # 数据库结构迁移统一由 sql/ 下的脚本维护。
-        return
 
     def load_samples_from_postgres(
         self, limit: int = 100, batch_ids: Optional[List[int]] = None
