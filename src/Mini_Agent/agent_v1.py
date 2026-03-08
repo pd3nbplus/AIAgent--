@@ -3,6 +3,7 @@ import re
 import requests
 from datetime import datetime
 from typing import Optional, Dict, Any
+from src.core.prompt_registry import PROMPT_KEYS, core_prompt_registry
 
 # --- 1. 定义工具集 ---
 
@@ -70,23 +71,10 @@ TOOLS_DEFINITION = [
 MODEL_NAME = "qwen-3-4b"
 LLM_API_URL = "http://localhost:7575/v1/chat/completions"
 
-SYSTEM_PROMPT = """
-你是一个智能助手。你可以使用以下工具来回答问题。
-你必须严格按照 JSON 格式回复，不要包含任何 Markdown 标记（如 ```json）。
-格式如下：
-{
-    "thought": "你现在的思考过程，分析用户需要什么",
-    "action": "工具名称 (如果没有工具可用，填 null)",
-    "action_input": "工具的参数 (JSON 对象，如果没有填 {})"
-}
-如果不需要调用工具，直接设置 action 为 null，并在 thought 中组织最终回答。
-
-可用工具：
-"""
-
-
 def call_llm(messages: list, tools_desc: str) -> Dict[str, Any]:
-    full_system_prompt = SYSTEM_PROMPT + tools_desc
+    full_system_prompt = core_prompt_registry.get(PROMPT_KEYS.MINI_AGENT_V1_SYSTEM).format(
+        tools_desc=tools_desc
+    )
     
     payload = {
         "model": MODEL_NAME, # 模型名需与你容器内一致

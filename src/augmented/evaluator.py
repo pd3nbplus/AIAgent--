@@ -27,6 +27,7 @@ from src.core.config import settings
 from src.core.embedding_client import get_ragas_shared_embedding
 from src.core.models import RagEvalResult, RagEvalSample
 from src.core.postgres_client import get_postgres_client
+from src.core.prompt_registry import PROMPT_KEYS, core_prompt_registry
 from src.rag.pipeline import RetrievalPipeline
 from src.schema.augmented_schema import EvalInputSample, EvalResultSample
 from src.utils.xml_parser import remove_think_and_n
@@ -50,14 +51,7 @@ class RAGEvaluator:
         self.ragas_embeddings = get_ragas_shared_embedding(settings.embedding.model_name)
 
         self.answer_prompt = ChatPromptTemplate.from_template(
-            """
-你是一个严谨的问答助手。请只依据给定上下文回答问题。
-如果上下文无法支持答案，请明确回答：根据提供的上下文无法回答。
-问题：{question}
-
-上下文：
-{contexts}
-"""
+            core_prompt_registry.get(PROMPT_KEYS.AUGMENTED_EVALUATOR_ANSWER)
         )
 
     @staticmethod

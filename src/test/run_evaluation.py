@@ -17,6 +17,7 @@ CONFIG = {
     # 可选：指定某次评估运行ID；不填时默认使用最近一次 eval_run_id
     "eval_run_id": None,
     "bad_case_top_k": 3,  # 坏案例诊断数量
+    "analyst_max_concurrency": 1,  # 诊断并发上限（默认 1）
     "save_markdown_report": True,
     "report_dir": "C:\\Users\\pdnbplus\\Documents\\python全系列\\AIAgent开发\\data\\eval",
 }
@@ -25,12 +26,13 @@ CONFIG = {
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
-    analyst = RAGAnalyst()
+    analyst = RAGAnalyst(max_concurrency=CONFIG.get("analyst_max_concurrency", 1))
     result = analyst.analyze(
         limit=CONFIG["limit"],
         batch_ids=CONFIG.get("batch_ids"),
         eval_run_id=CONFIG.get("eval_run_id"),
         bad_case_top_k=CONFIG["bad_case_top_k"],
+        max_concurrency=CONFIG.get("analyst_max_concurrency", 1),
     )
 
     eval_run_id = result["eval_run_id"]

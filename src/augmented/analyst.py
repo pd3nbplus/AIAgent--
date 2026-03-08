@@ -2,10 +2,10 @@
 # src/augmented/analyst.py
 from __future__ import annotations
 
+import asyncio
 import ast
 import logging
 import re
-import asyncio
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -19,6 +19,7 @@ from src.augmented.llm_router import LLMRouter
 from src.augmented.utils import run_async
 from src.core.models import RagEvalDiagnosis, RagEvalResult
 from src.core.postgres_client import get_postgres_client
+from src.core.prompt_registry import PROMPT_KEYS, core_prompt_registry
 from src.schema.augmented_schema import EvalResultSample
 
 logger = logging.getLogger(__name__)
@@ -27,37 +28,17 @@ logger = logging.getLogger(__name__)
 class RAGAnalyst:
     """分析低分样本并给出诊断建议。"""
 
-    def __init__(self, generator_config: Optional[GeneratorConfig] = None):
+    def __init__(self, generator_config: Optional[GeneratorConfig] = None, max_concurrency: int = 1):
         # 使用 llm_router 管理多模型降级调用。
         self.generator_config = generator_config or build_default_config()
         self.router = LLMRouter(self.generator_config, llm_group="analyst_llms")
         # 保存最近一次分析生成的完整 markdown 报告。
         self.report: str = ""
+        # 诊断并发上限，默认串行（1），避免瞬时压垮 LLM 服务。
+        self.max_concurrency: int = self._normalize_concurrency(max_concurrency, default=1)
 
         self._prompt = ChatPromptTemplate.from_template(
-            """
-你是一个资深的 RAG 系统调试专家。
-以下是一条低分样本，请输出结构化诊断：
-
-【用户问题】{question}
-【检索上下文】{contexts}
-【模型回答】{answer}
-【标准答案】{ground_truth}
-【标准上下文】{ground_truth_contexts}
-
-【指标】
-- Faithfulness: {faithfulness}
-- Answer Relevancy: {answer_relevancy}
-- Context Precision: {context_precision}
-- Context Recall: {context_recall}
-
-请输出：
-1) 根因判断（检索失败 / 排序失败 / 生成失败 / 混合问题）
-2) 证据（引用上下文或回答中的具体片段）
-3) 1条可执行优化建议（具体到参数或策略）
-
-直接输出分析结论，不要客套。
-"""
+            core_prompt_registry.get(PROMPT_KEYS.AUGMENTED_ANALYST_DIAGNOSIS)
         )
 
     @staticmethod
@@ -91,6 +72,15 @@ class RAGAnalyst:
         s = re.sub(r"\s+", "", s)
         s = re.sub(r"[，。！？；：、,.!?;:\"'`~\\-_\\(\\)\\[\\]{}<>]", "", s)
         return s
+
+    @staticmethod
+    def _normalize_concurrency(value: Optional[int], default: int = 1) -> int:
+        """归一化并发参数，保证至少为 1。"""
+        try:
+            parsed = int(default if value is None else value)
+        except (TypeError, ValueError):
+            parsed = int(default)
+        return max(1, parsed)
 
     def _is_unanswerable_text(self, text: str) -> bool:
         """判断文本是否表达“依据上下文无法回答”。"""
@@ -149,16 +139,26 @@ class RAGAnalyst:
         text, model = await asyncio.to_thread(self.router.invoke, self._prompt, payload)
         return {"diagnosis": text, "model": model or self.generator_config.default_model_name}
 
-    async def analyze_bad_cases(self, df_results: pd.DataFrame, top_k: int = 5) -> List[Dict]:
+    async def analyze_bad_cases(
+        self,
+        df_results: pd.DataFrame,
+        top_k: int = 5,
+        max_concurrency: Optional[int] = None,
+    ) -> List[Dict]:
         """异步分析低分 Top-K 样本。"""
         if df_results is None or df_results.empty:
             return []
 
         worst_cases = self._score_and_select(df_results, top_k)
-        logger.info("开始分析低分样本：top_k=%s", top_k)
+        if worst_cases is None or worst_cases.empty:
+            return []
 
-        reports: List[Dict] = []
-        for idx, row in worst_cases.iterrows():
+        concurrency = self._normalize_concurrency(max_concurrency, default=self.max_concurrency)
+        logger.info("开始分析低分样本：top_k=%s, max_concurrency=%s", top_k, concurrency)
+
+        semaphore = asyncio.Semaphore(concurrency)
+
+        async def _analyze_row(idx, row: pd.Series) -> Dict:
             item = EvalResultSample(
                 sample_id=str(row.get("sample_id", "")),
                 sample_batch_id=int(row.get("sample_batch_id", 1) or 1),
@@ -183,9 +183,11 @@ class RAGAnalyst:
                 "context_precision": item.context_precision,
                 "context_recall": item.context_recall,
             }
+            avg_score = float(row.get("avg_score", 0.0) or 0.0)
 
             try:
-                diagnose_out = await self._diagnose_one(payload)
+                async with semaphore:
+                    diagnose_out = await self._diagnose_one(payload)
                 diagnosis = diagnose_out["diagnosis"]
                 diagnosis_model = diagnose_out["model"]
             except Exception as e:
@@ -193,34 +195,44 @@ class RAGAnalyst:
                 diagnosis = f"诊断失败：{e}"
                 diagnosis_model = self.generator_config.default_model_name
 
-            reports.append(
-                {
-                    "id": idx,
-                    "sample_id": item.sample_id,
-                    "sample_batch_id": item.sample_batch_id,
-                    "question": item.question,
-                    "answer": item.answer,
-                    "contexts": item.contexts,
-                    "ground_truth": item.ground_truth,
-                    "ground_truth_contexts": item.ground_truth_contexts,
-                    "scores": {
-                        "faithfulness": item.faithfulness,
-                        "answer_relevancy": item.answer_relevancy,
-                        "context_precision": item.context_precision,
-                        "context_recall": item.context_recall,
-                        "avg_score": float(worst_cases.loc[idx, "avg_score"]),
-                    },
-                    "predicted_category": self._auto_categorize_error(item.model_dump()),
-                    "diagnosis": diagnosis,
-                    "diagnosis_model": diagnosis_model,
-                }
-            )
+            return {
+                "id": idx,
+                "sample_id": item.sample_id,
+                "sample_batch_id": item.sample_batch_id,
+                "question": item.question,
+                "answer": item.answer,
+                "contexts": item.contexts,
+                "ground_truth": item.ground_truth,
+                "ground_truth_contexts": item.ground_truth_contexts,
+                "scores": {
+                    "faithfulness": item.faithfulness,
+                    "answer_relevancy": item.answer_relevancy,
+                    "context_precision": item.context_precision,
+                    "context_recall": item.context_recall,
+                    "avg_score": avg_score,
+                },
+                "predicted_category": self._auto_categorize_error(item.model_dump()),
+                "diagnosis": diagnosis,
+                "diagnosis_model": diagnosis_model,
+            }
 
-        return reports
+        tasks = [_analyze_row(idx, row) for idx, row in worst_cases.iterrows()]
+        return await asyncio.gather(*tasks)
 
-    def analyze_bad_cases_sync(self, df_results: pd.DataFrame, top_k: int = 5) -> List[Dict]:
+    def analyze_bad_cases_sync(
+        self,
+        df_results: pd.DataFrame,
+        top_k: int = 5,
+        max_concurrency: Optional[int] = None,
+    ) -> List[Dict]:
         """同步入口，便于在脚本中直接调用。"""
-        return run_async(self.analyze_bad_cases(df_results=df_results, top_k=top_k))
+        return run_async(
+            self.analyze_bad_cases(
+                df_results=df_results,
+                top_k=top_k,
+                max_concurrency=max_concurrency,
+            )
+        )
 
     @staticmethod
     def _clip_text(text: str, max_len: int = 500) -> str:
@@ -358,6 +370,7 @@ class RAGAnalyst:
         batch_ids: Optional[List[int]] = None,
         eval_run_id: Optional[str] = None,
         bad_case_top_k: int = 5,
+        max_concurrency: Optional[int] = None,
     ) -> Dict:
         """
         一体化分析入口：
@@ -418,7 +431,11 @@ class RAGAnalyst:
                 "reports": [],
             }
 
-        reports = self.analyze_bad_cases_sync(df_results=df, top_k=bad_case_top_k)
+        reports = self.analyze_bad_cases_sync(
+            df_results=df,
+            top_k=bad_case_top_k,
+            max_concurrency=max_concurrency,
+        )
         saved_diag = self._save_diagnosis_results(eval_run_id=selected_run_id, reports=reports)
         self.report = self._build_report_markdown(eval_run_id=selected_run_id, reports=reports)
 

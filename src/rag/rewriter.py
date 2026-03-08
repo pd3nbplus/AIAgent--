@@ -2,6 +2,7 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from src.core.config import settings
+from src.core.prompt_registry import PROMPT_KEYS, core_prompt_registry
 from src.utils.xml_parser import remove_think_and_n
 import logging
 from typing import Dict, Any
@@ -15,25 +16,12 @@ STRATEGY_CONFIGS: Dict[str, Dict[str, Any]] = {
     "standard": {
         "name": "StandardRewrite",
         "temperature": settings.llm.rewrite_temperature,
-        "system_prompt": """
-        你是一个高级 RAG 系统的查询优化专家。
-        任务：将用户的自然语言问题改写为更适合向量数据库检索的陈述句。
-        策略：口语转书面语、疑问转陈述、术语对齐、去噪。
-        约束：只输出改写后的句子，无解释。
-        """
+        "prompt_key": PROMPT_KEYS.RAG_REWRITER_STANDARD_SYSTEM,
     },
     "hyde": {
         "name": "HyDE (Hypothetical Document)",
         "temperature": settings.llm.hyde_temperature,
-        "system_prompt": """
-        请阅读以下问题，并撰写一段**虚构的、详细的**文档片段来回答这个问题。
-        要求：
-        1. 语气专业、客观，模仿技术文档或百科全书风格。
-        2. 包含可能出现在真实文档中的关键词、术语和具体步骤。
-        3. 不需要保证事实绝对正确，但必须在语义和结构上像一个真实的答案。
-        4. 长度控制在 100-200 字左右。
-        约束：只输出虚构的文档内容，不要包含“以下是虚构文档”等前缀。
-        """
+        "prompt_key": PROMPT_KEYS.RAG_REWRITER_HYDE_SYSTEM,
     },
     # 未来扩展示例：
     # "multi_query": { ... },
@@ -72,8 +60,8 @@ class QueryRewriter:
         
         # 构建 Prompt
         self.prompt = ChatPromptTemplate.from_messages([
-            ("system", config["system_prompt"]),
-            ("human", "{original_query}")
+            ("system", core_prompt_registry.get(config["prompt_key"])),
+            ("human", core_prompt_registry.get(PROMPT_KEYS.RAG_REWRITER_HUMAN_QUERY))
         ])
         
         logger.info(f"📝 初始化重写器：{self.name} (Temp={self.temperature})")

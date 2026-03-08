@@ -48,8 +48,7 @@ class FastRetrievalStrategy(BaseAgentStrategy):
                 "rough_top_k": 3,
             },
             "online": {
-                "enable_rerank": True,
-                "dynamic_threshold": settings.rag_online.score_threshold,
+                "enable_rerank": False,
             },
             "composer": {
                 "enable_hybrid_search": True,

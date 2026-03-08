@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 from typing import Any, List, Optional
 
 import logging
 
+from src.core.prompt_registry import PROMPT_KEYS, core_prompt_registry
 from src.self_rag.adapters.trace_adapter import TraceAdapter
 from src.self_rag.config import SelfRAGConfig
 from src.self_rag.nodes import (
@@ -42,13 +42,8 @@ class SelfRAGEngine:
             from src.self_rag.adapters.llm_adapter import LLMAdapter
 
             llm = LLMAdapter()
-            prompt_loader = LLMAdapter.load_prompt
         else:
             llm = llm_adapter
-
-            def prompt_loader(path: Path) -> str:
-                with path.open("r", encoding="utf-8") as f:
-                    return f.read().strip()
 
         if rag_adapter is None:
             from src.self_rag.adapters.rag_pipeline_adapter import RAGPipelineAdapter
@@ -57,29 +52,27 @@ class SelfRAGEngine:
         else:
             rag = rag_adapter
 
-        prompts_dir = Path(__file__).resolve().parent / "prompts"
-
         self.route_node = RouteNode()
         self.retrieve_node = RetrieveNode(rag)
-        self.generate_node = GenerateNode(llm, prompt_loader(prompts_dir / "generate.txt"))
+        self.generate_node = GenerateNode(llm, core_prompt_registry.get(PROMPT_KEYS.SELF_RAG_GENERATE))
         self.judge_relevance_node = JudgeRelevanceNode(
             llm,
-            prompt_loader(prompts_dir / "judge_relevance.txt"),
+            core_prompt_registry.get(PROMPT_KEYS.SELF_RAG_JUDGE_RELEVANCE),
             threshold=self.config.relevance_threshold,
         )
         self.judge_grounding_node = JudgeGroundingNode(
             llm,
-            prompt_loader(prompts_dir / "judge_grounding.txt"),
+            core_prompt_registry.get(PROMPT_KEYS.SELF_RAG_JUDGE_GROUNDING),
             threshold=self.config.grounding_threshold,
         )
         self.judge_utility_node = JudgeUtilityNode(
             llm,
-            prompt_loader(prompts_dir / "judge_utility.txt"),
+            core_prompt_registry.get(PROMPT_KEYS.SELF_RAG_JUDGE_UTILITY),
             threshold=self.config.utility_threshold,
         )
         self.rewrite_query_node = RewriteQueryNode(
             llm,
-            prompt_loader(prompts_dir / "rewrite_query.txt"),
+            core_prompt_registry.get(PROMPT_KEYS.SELF_RAG_REWRITE_QUERY),
         )
         self.decide_node = DecideNextNode()
 

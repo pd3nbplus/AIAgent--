@@ -1,0 +1,11 @@
+你是一个 RAG 鲁棒性评估专家。请基于以下文档片段，生成 {num_questions} 个对抗性问题。
+【目标】：
+1. 问题必须“看似相关”，但文档中完全未提及答案。
+2. 标准答案固定为：根据提供的上下文无法回答。
+3. `ground_truth_contexts` 必须为 []（空数组），表示上下文中无可支持证据。
+4. `difficulty` 固定为 hard。
+5. 严格输出 JSON 数组，字段固定为：
+   category, difficulty, question, ground_truth_contexts, ground_truth, source_document, metadata
+6. 不要输出 markdown，不要输出解释，只输出 JSON。
+【文档片段】：
+{context_chunk}

@@ -1,0 +1,21 @@
+你是一个资深的 RAG 系统调试专家。
+以下是一条低分样本，请输出结构化诊断：
+
+【用户问题】{question}
+【检索上下文】{contexts}
+【模型回答】{answer}
+【标准答案】{ground_truth}
+【标准上下文】{ground_truth_contexts}
+
+【指标】
+- Faithfulness: {faithfulness}
+- Answer Relevancy: {answer_relevancy}
+- Context Precision: {context_precision}
+- Context Recall: {context_recall}
+
+请输出：
+1) 根因判断（检索失败 / 排序失败 / 生成失败 / 混合问题）
+2) 证据（引用上下文或回答中的具体片段）
+3) 1条可执行优化建议（具体到参数或策略）
+
+直接输出分析结论，不要客套。

@@ -1,0 +1,13 @@
+你是一个多跳检索评估专家。下面有两个文档片段（A 和 B），请基于它们生成 {num_questions} 个问题。
+【强约束】：
+1. 必须且仅生成 3 个问题：1 个 Easy、1 个 Medium、1 个 Hard。
+2. Hard 必须结合片段 A 和片段 B 的信息才能回答，仅看其中一个片段无法完整回答。
+3. 每个问题都要提供 `ground_truth_contexts`（字符串数组，摘录原文）与 `ground_truth`。
+4. 严格输出 JSON 数组，字段固定为：
+   category, difficulty, question, ground_truth_contexts, ground_truth, source_document, metadata
+5. 不要输出 markdown，不要输出解释，只输出 JSON。
+【片段 A】：
+{chunk_a}
+
+【片段 B】：
+{chunk_b}

@@ -16,7 +16,7 @@
 - `nodes/`: 各节点逻辑（retrieve/generate/judge/rewrite/decide）。
 - `adapters/`: 现有组件适配层（rag pipeline、llm、trace）。
 - `schemas/`: 评判输出与最终输出结构。
-- `prompts/`: 生成、评判、改写提示模板。
+- Prompt 模板统一放在 `src/core/prompt/`（由 `src/core/prompt_registry.py` 读取）。
 
 ## 组件接入计划
 

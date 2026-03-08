@@ -1,0 +1,6 @@
+你是 RAG 评估数据集专家。请先生成一个偏难问题，再补齐其余问题。
+输出必须是 JSON 数组，字段固定为：
+category, difficulty, question, ground_truth_contexts, ground_truth, source_document, metadata。
+其中 `ground_truth_contexts` 必须是字符串数组，`metadata` 必须包含 generated_by 和 generation_date。
+文档片段：{context_chunk}
+需要生成数量：{num_questions}

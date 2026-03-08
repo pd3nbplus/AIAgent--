@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from typing import Literal, Optional, List
 from langchain_openai import ChatOpenAI
 from src.core.config import settings
+from src.core.prompt_registry import PROMPT_KEYS, core_prompt_registry
 from src.utils.xml_parser import remove_think_and_n
 # from .llm_router import get_llm_client # 假设你有一个获取 LLM 的工厂函数
 
@@ -30,82 +31,8 @@ class RouteDecision(BaseModel):
         description="低置信度时用于澄清需求的问题列表；高置信度时为 null"
     )
 
-# 2. 定义 Prompt
-ROUTER_PROMPT_TEMPLATE = """
-你是一个智能 RAG 系统的路由指挥官。你的任务是分析用户问题，输出严格的 JSON 对象以决定处理路径。
-
-# 核心任务
-. 识别用户意图 (intent)。
-. 评估置信度 (confidence)。
-. **关键逻辑**：
-   - 如果问题清晰且置信度 >= 0.6：直接推荐执行策略 (如 fast_retrieval)。
-   - 如果问题模糊、歧义或缺少关键上下文导致置信度 < 0.6：
-     - 将 `strategy` 设为 `clarify_needed`。
-     - **必须**在 `clarification_questions` 字段中生成 2-3 个具体的引导性问题或场景选项，帮助用户澄清需求。
-     - 引导问题应覆盖最可能的几种情况，语气要友好且具指导性。
-
-# 约束条件 (严格遵守)
-. **输出格式**：必须且仅输出一个合法的 JSON 对象。
-. **禁止项**：不要输出 Markdown 代码块标记 (如 ```json)，不要输出任何解释性文字。
-. **字段限制**：
-   - `intent`: ["CHIT_CHAT", "FACT_LOOKUP", "HOW_TO", "COMPARISON", "CODE_SEARCH", "UNKNOWN"]
-   - `strategy`: ["direct_reply", "fast_retrieval", "standard_retrieval", "deep_search", "code_search", "fallback", "clarify_needed"]
-   - `confidence`: 0.0 - 1.0 浮点数。
-   - `clarification_questions`: 仅在低置信度时为非空列表，否则为 null。
-
-# 意图与策略映射规则 (高置信度时)
-- CHIT_CHAT -> direct_reply
-- FACT_LOOKUP -> fast_retrieval
-- HOW_TO -> standard_retrieval
-- COMPARISON -> deep_search
-- CODE_SEARCH -> code_search
-- UNKNOWN -> fallback
-
-# 低置信度处理示例 (Few-Shot)
-用户输入: "那个怎么弄？"
-JSON 输出:
-{{
-    "intent": "UNKNOWN",
-    "confidence": 0.3,
-    "reasoning": "代词'那个'指代不明，缺乏具体操作对象或上下文。",
-    "strategy": "clarify_needed",
-    "clarification_questions": [
-        "您是指如何重置密码，还是如何申请报销？",
-        "您是在操作手机 App 还是网页版时遇到的问题？",
-        "能否提供具体的错误提示或您想实现的功能名称？"
-    ]
-}}
-
-用户输入: "对比一下版本。"
-JSON 输出:
-{{
-    "intent": "COMPARISON",
-    "confidence": 0.4,
-    "reasoning": "用户想要对比，但未指定对比的对象（如产品版本、方案A/B等）。",
-    "strategy": "clarify_needed",
-    "clarification_questions": [
-        "您是想对比 v1.0 和 v2.0 版本的 API 差异吗？",
-        "您是在对比我们的标准版和企业版服务方案吗？",
-        "或者是想对比 Python 和 Java 在某个特定场景下的性能？"
-    ]
-}}
-
-# 高置信度示例
-用户输入: "Python 里怎么用 pandas 读取 csv？"
-JSON 输出:
-{{
-    "intent": "CODE_SEARCH",
-    "confidence": 0.98,
-    "reasoning": "明确的编程库使用问题，意图清晰。",
-    "strategy": "code_search",
-    "clarification_questions": null
-}}
-
-# 用户问题
-{question}
-
-# 你的回答 (仅 JSON)
-"""
+# 2. 统一从 core prompt registry 读取模板
+ROUTER_PROMPT_TEMPLATE = core_prompt_registry.get(PROMPT_KEYS.AGENT_INTENT_ROUTER)
 
 class IntentRouter:
     """意图路由器：使用 LLM 将用户问题映射到可执行策略。"""

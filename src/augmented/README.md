@@ -9,7 +9,7 @@
 - `evaluator.py`: 执行检索+回答并用 RAGAS 计算评估指标。
 - `analyst.py`: 对低分样本做根因诊断并生成报告。
 - `llm_router.py`: LLM endpoint 加载与降级调用。
-- `prompts.py`: 生成任务使用的 Prompt 模板。
+- `prompts.py`: Prompt key 兼容层（实际模板统一在 `src/core/prompt/`，由 `src/core/prompt_registry.py` 读取）。
 - `sources.py` / `sinks.py`: 数据源与落库适配层。
 - `strategies.py`: 评测题任务策略（standard/adversarial/mixed_pair）。
 

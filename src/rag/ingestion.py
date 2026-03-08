@@ -7,6 +7,7 @@ from langchain_community.document_loaders import PyMuPDFLoader, TextLoader, Unst
 from src.core.milvus_client import get_milvus_client
 from src.core.es_client import es_client_instance
 from src.core.config import settings
+from src.core.prompt_registry import PROMPT_KEYS, core_prompt_registry
 from src.utils.xml_parser import remove_think_and_n
 from src.rag.factories import ChunkerFactory # 新增导入
 from langchain_openai import ChatOpenAI
@@ -59,15 +60,8 @@ class DataIngestionPipeline:
     def enhance_metadata(self, chunk_text: str, source: str) -> Dict:
         """利用 LLM 为 Chunk 生成假设性问题和摘要 (元数据增强)"""
         prompt = ChatPromptTemplate.from_messages([
-            ("system", """
-            你是一个知识库索引专家。请阅读以下文本片段，并生成：
-            1. 一个简短的摘要 (summary)。
-            2. 3 个用户可能用来查询该片段的“假设性问题” (questions)，用逗号分隔。
-            
-            只返回 JSON 格式，不要其他解释。
-            示例格式：{{"summary": "...", "questions": "问题 1, 问题 2, 问题 3"}}
-            """),
-            ("human", "文本片段：{text}")
+            ("system", core_prompt_registry.get(PROMPT_KEYS.RAG_INGESTION_ENHANCE_SYSTEM)),
+            ("human", core_prompt_registry.get(PROMPT_KEYS.RAG_INGESTION_ENHANCE_HUMAN))
         ])
         
         try:
